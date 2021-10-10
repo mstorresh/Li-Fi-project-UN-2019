@@ -22,3 +22,4 @@ In this work, a system for transmitting and receiving information through light 
 # To Clarify
 
 This project was performed for the subject of digital electronics and was developed in Spanish as the official language of Colombia.
+The Source and Makefile for the pwm_and_adc_example_PRU0 was conducted with the assistance of Professor Ricardo Amezquita.

@@ -1,0 +1,104 @@
+Para correr este ejemplo es util tener instalado ipython en el beaglebone(python 2) para hacer pruebas con el codigo .py
+
+Primero copiar estos archivos en el directorio /home
+
+Por consola ingresar a la carpeta config-file y correr el siguiente comando:
+
+config-pin -f config-pin.config
+
+##################################################################################################################################################################################
+
+        >> Explicacion del archivo config-pin.config <<<
+
+        Este archivo contiene los pines necesarios para el ejemplo
+        
+        El pin P9_29 es el pwm que se ajusta mediante python
+        El pin P9_42 es un pin especial del beaglebone que funciona en el PRU0 y sirve como PWM ECAP
+
+##################################################################################################################################################################################
+
+Luego de configurar los pines del beaglebone ingresar a la carpeta example-pru0 y correr los siguientes comandos:
+
+make clean
+#Esto borra el ultimo proceso que se hizo en la carpeta para compilar el firmware del PRU0
+
+make load
+#Esto compila los archivos contenidos en el directorio source y carga el firmware necesario para el PRU0
+
+make start
+#Este comando inicia a correr el firmware en el PRU0
+
+##################################################################################################################################################################################
+
+        >> Explicacion basica del archivo main.c (PRU0) <<<
+
+        > struct datos_compartidos {}
+        struct shared_mem {]
+        Funciona para compartir datos entre el PRU0 y el PRU1. 
+        dato1 dato2 y dato3 son utilizados para configurar un PWM que corre en el PRU1 y se accede mediante la funcion pwm_test_pru_2 que se encuentra comentada en el archivo .py
+        adc_shrd1, adc_shrd2, adc_shrd3, adc_shrd4 son los datos que se reciben en del PRU1 y que contienen el valor RAW actual del ADC
+
+        > struct CommSt{}
+        Contiene los datos necesarios que se comparten entre el PRU0 y python, un comando que es de 4 caracteres (ej: *'a') y maximo hasta 5 enteros de 32 bits.
+        pwm_config()
+        Para configurar el PWM en el PRU0 mediante el ECAP es necesario configurar el registro ECCTL2 (ver ti.am335x.technical_reference_manual) en modo APWM
+        Los registros CAP1, CAP2, CAP3 y CAP4 son (2) contadores. El registro CAP1 es el contador mas alto al que CAP2 puede llegar, luego se hace una comparacion entre los 2 contadores de ciclos en el beagle (f=200 MHz, T=5 ns) y se cambia la señal del PWM de 0 a 1, es decir si CAP2 esta en 400 y CAP1 en 800 el pwm tendra la mitad del ciclo util (50%) y su frecuencia sera de f_pwm=1/((5*10^-9)*(800))
+        CAP3 y CAP4 son copias de CAP1 y CAP2 respectivamente y la forma correcta es configurar las copias (CAP3/CAP4) para que se actualice el valor de (CAP1/CAP2) cuando el firmware del PRU0 esta corriendo
+
+        > switch (data->cmd[1]) {}
+        Dependiendo del comando recibido por python el programa corre una serie de comandos:
+            -case 'a': {}
+            Los datos compartidos del PRU1 se actualizan en las variables d1,d2,d3,d4 para posteriormente ser enviados a la funcion de python "read_adc_from_pru()"
+            -case 'f': {}
+            Los datos ingresados a la funcion de python "pwm_test_pru_2()" son enviados al PRU1 para configurar un PWM opcional
+            -case 'p': {}
+            Los datos recibidos de la funcion de python "pwm_test_pru()" son actualizados en los registros CAP3 y CAP4
+    
+##################################################################################################################################################################################
+
+Luego de cargar el firmware en el PRU0 ingresar a la carpeta example y correr el siguiente comando:
+
+ipython
+
+En ipython importar todas las funciones de example.py con el comando:
+
+from example import *
+
+Y luego correr el siguiente comando para acceder a las funciones del codigo .py
+
+example = Example()
+
+##################################################################################################################################################################################
+
+    >> Explicacion de las funciones en el archivo example.py <<<
+
+    >read_adc_from_pru()
+    Devuelve el valor de los 3 primeros canales del ADC en RAW(pines pines P9_39, P9_40, P9_37 respectivamente)
+
+    >pwm_test_python()
+    Requiere del ciclo util del PWM y de su frecuencia y habilita el PWM en el pin P9_29
+
+    >pwm_test_pru()
+
+    Requiere del ciclo util del PWM y de su frecuencia y habilita el PWM ECAP del PRU0 en el pin P9_42
+
+    >pwm_test_python_stop()
+    Deshabilita el pwm que se corrio previamente en el pin P9_29
+
+    >read_adc_from_python()
+    Requiere el numero del ADC a leer y devuelve el valor del ADC en RAW (descomentar primero "import Adafruit_BBIO.ADC as ADC" y "ADC.setup()" )
+
+    >talk_with_pru()
+    Revisa si es posible la comunicacion con el PRU0 escribiendo a un dispositivo virtual y envia maximo hasta 5 enteros y un comando de 4 caracteres.
+    Requiere de un comando de 3 caracteres (ej: 'a')
+    y minimo 1 dato entero. 
+
+##################################################################################################################################################################################
+
+
+
+
+
+
+
+

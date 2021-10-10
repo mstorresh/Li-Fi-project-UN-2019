@@ -1,5 +1,5 @@
-# Li-Fi-project-UN-2019
-LiFi project for Digital Electronic
+# VLC-project-UN-2019
+VLC project for Digital Electronic
 
 This Li-Fi project was developed by:
 
